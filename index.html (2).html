@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SortTube</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --accent:#ff3864;--accent2:#ff6b35;
+  --bg:#07070f;--surface:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+  --text:#e2e2ee;--muted:#444;
+  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-b);
+  -webkit-tap-highlight-color:transparent;overflow-x:hidden;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes floatDot{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes menuIn{from{opacity:0;transform:scale(.9) translateY(-6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+/* BG */
+#bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;filter:blur(60px);}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,#ff38641a,transparent 70%);top:-200px;right:-200px;}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,#b57bee10,transparent 70%);bottom:-100px;left:-100px;}
+#bg-grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:44px 44px;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;
+  background:rgba(7,7,15,.88);backdrop-filter:blur(24px) saturate(180%);
+  border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0);}
+.header-inner{display:flex;align-items:center;gap:10px;padding:12px 16px;}
+.logo{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;box-shadow:0 3px 16px #ff386440;}
+.logo-name{font-family:var(--font-d);font-size:17px;font-weight:800;color:#fff;letter-spacing:-.4px;}
+.logo-name em{color:var(--accent);font-style:normal;}
+.search-wrap{flex:1;position:relative;}
+.search-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.3;pointer-events:none;}
+#search{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);
+  border-radius:12px;padding:10px 36px 10px 36px;color:#fff;font-size:16px;
+  font-family:var(--font-b);outline:none;direction:rtl;transition:all .2s;}
+#search:focus{background:rgba(255,255,255,.09);border-color:rgba(255,56,100,.4);box-shadow:0 0 0 3px rgba(255,56,100,.08);}
+#search::placeholder{color:#2e2e3e;}
+#search-clear{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,.08);border:none;color:#888;cursor:pointer;
+  width:24px;height:24px;border-radius:50%;font-size:12px;
+  display:none;align-items:center;justify-content:center;}
+#search-clear.on{display:flex;}
+
+/* CATEGORIES */
+.cats-wrap{position:relative;z-index:1;padding:14px 16px 0;}
+.cats-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cats-label{font-size:10px;font-weight:700;color:#333;letter-spacing:2px;text-transform:uppercase;}
+.cat-add-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 11px;
+  color:#888;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-b);}
+.cats-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.cats-row::-webkit-scrollbar{display:none;}
+.cat-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--border);
+  border-radius:50px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .18s;font-family:var(--font-b);color:#555;white-space:nowrap;
+  background:rgba(255,255,255,.025);flex-shrink:0;}
+.cat-btn.active{color:#fff;border-color:transparent;}
+.cat-badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;}
+
+/* MAIN */
+main{position:relative;z-index:1;padding:16px 16px calc(90px + var(--safe-bottom));}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.sec-title{font-family:var(--font-d);font-size:20px;font-weight:800;color:#fff;}
+.sec-count{font-size:13px;color:#444;}
+.sec-stag{font-size:13px;color:var(--accent);font-weight:600;}
+
+/* GRID — always 2 columns */
+#grid{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:500px){#grid{grid-template-columns:repeat(2,1fr);gap:14px;}}
+@media(min-width:900px){#grid{grid-template-columns:repeat(3,1fr);gap:16px;}}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  overflow:visible;animation:cardIn .4s ease both;position:relative;}
+.card:active{transform:scale(.98);}
+@media(hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 12px 36px rgba(0,0,0,.5);}}
+
+.card-thumb{position:relative;aspect-ratio:16/9;overflow:hidden;background:#0c0c18;
+  cursor:pointer;border-radius:14px 14px 0 0;}
+.card-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;}
+@media(hover:hover){.card:hover .card-thumb img{transform:scale(1.05);}}
+.thumb-ov{position:absolute;inset:0;background:rgba(0,0,0,.2);
+  display:flex;align-items:center;justify-content:center;}
+.play-ic{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:15px;color:#fff;padding-left:2px;backdrop-filter:blur(4px);}
+.card-badge{position:absolute;bottom:7px;right:7px;border-radius:99px;
+  padding:2px 8px;font-size:10px;font-weight:800;color:#000;}
+
+/* THREE-DOTS MENU BUTTON */
+.card-menu-btn{position:absolute;top:6px;left:6px;z-index:10;
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .15s;line-height:1;}
+.card-menu-btn:active{background:rgba(255,255,255,.2);}
+
+/* DROPDOWN MENU */
+.card-menu{position:absolute;top:38px;left:6px;z-index:500;
+  background:#1a1a26;border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  padding:6px;min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,.7);
+  animation:menuIn .15s ease;display:none;}
+.card-menu.open{display:block;}
+.menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#ccc;
+  transition:background .12s;border:none;background:none;width:100%;text-align:right;
+  font-family:var(--font-b);}
+.menu-item:active,.menu-item:hover{background:rgba(255,255,255,.08);}
+.menu-item.danger{color:#ff5577;}
+.menu-item.danger:hover{background:rgba(255,56,100,.12);}
+.menu-sep{height:1px;background:rgba(255,255,255,.07);margin:4px 0;}
+
+/* SUB MENU — category picker inside menu */
+.submenu{display:none;flex-direction:column;gap:4px;padding:4px 0 2px;}
+.submenu.open{display:flex;}
+.submenu-item{display:flex;align-items:center;gap:8px;padding:8px 12px;
+  border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#ccc;
+  transition:background .12s;border:none;background:none;width:100%;text-align:right;
+  font-family:var(--font-b);}
+.submenu-item:active{background:rgba(255,255,255,.1);}
+.submenu-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+.card-body{padding:8px 10px 10px;}
+.card-title{font-size:12px;font-weight:600;color:#dde;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* EMPTY */
+#empty{text-align:center;padding:60px 20px;display:none;animation:fadeUp .4s ease;}
+.empty-dots{display:flex;justify-content:center;gap:9px;margin-bottom:22px;}
+.empty-dot{width:10px;height:10px;border-radius:50%;}
+.empty-h{font-family:var(--font-d);font-size:22px;font-weight:800;color:#fff;margin-bottom:10px;}
+.empty-p{font-size:14px;color:#3a3a4a;line-height:1.7;max-width:280px;margin:0 auto;}
+
+/* FAB */
+#fab{position:fixed;bottom:calc(24px + var(--safe-bottom));left:50%;transform:translateX(-50%);
+  z-index:300;display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;border-radius:50px;padding:15px 28px;
+  color:#fff;font-size:15px;font-weight:700;font-family:var(--font-b);cursor:pointer;
+  box-shadow:0 8px 32px #ff386465;white-space:nowrap;transition:all .2s;animation:fadeUp .5s ease;}
+#fab:active{transform:translateX(-50%) scale(.95);}
+@media(min-width:600px){
+  #fab{left:auto;right:28px;bottom:28px;transform:none;}
+  #fab:active{transform:scale(.96);}
+  #fab:hover{transform:translateY(-2px);box-shadow:0 14px 44px #ff386478;}
+}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(18px);
+  z-index:400;display:none;align-items:flex-end;justify-content:center;}
+.overlay.open{display:flex;animation:fadeUp .15s ease;}
+@media(min-width:600px){.overlay{align-items:center;}}
+
+/* MODAL / BOTTOM SHEET */
+.modal{background:linear-gradient(160deg,#10101a,#0c0c16);border:1px solid rgba(255,255,255,.09);
+  border-radius:22px 22px 0 0;width:100%;
+  box-shadow:0 -16px 60px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05);
+  overflow:hidden;max-height:92vh;overflow-y:auto;}
+@media(min-width:600px){
+  .modal{border-radius:22px;max-width:500px;max-height:none;overflow-y:visible;}
+}
+.modal-band{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2),#b57bee);}
+.drag-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:99px;
+  margin:12px auto 0;}
+@media(min-width:600px){.drag-handle{display:none;}}
+.modal-head{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,.05);}
+.modal-eyebrow{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.modal-title-row{display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:var(--font-d);font-size:20px;font-weight:800;color:#fff;}
+.x-btn{width:32px;height:32px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);
+  color:#777;cursor:pointer;font-size:14px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.modal-body{padding:18px 22px 22px;display:flex;flex-direction:column;gap:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:#444;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:7px;}
+.field input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:12px;padding:13px 14px;color:#fff;font-size:16px;font-family:var(--font-b);
+  outline:none;transition:all .2s;direction:rtl;}
+.field input:focus{background:rgba(255,255,255,.08);border-color:rgba(255,56,100,.4);
+  box-shadow:0 0 0 3px rgba(255,56,100,.08);}
+.field input::placeholder{color:#2a2a3a;}
+#add-err{display:none;align-items:center;gap:8px;background:rgba(255,56,100,.07);
+  border:1px solid rgba(255,56,100,.18);border-radius:10px;
+  padding:10px 14px;color:#ff5577;font-size:13px;font-weight:600;}
+#add-err.on{display:flex;}
+.ai-note{display:flex;align-items:center;gap:9px;background:rgba(181,123,238,.06);
+  border:1px solid rgba(181,123,238,.12);border-radius:10px;padding:10px 14px;font-size:12px;color:#666;}
+.modal-btns{display:flex;gap:10px;}
+.btn-cancel{background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:12px;padding:13px 18px;color:#555;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:var(--font-b);}
+.btn-add{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;
+  border-radius:12px;padding:14px;color:#fff;font-size:15px;font-weight:700;
+  cursor:pointer;font-family:var(--font-b);box-shadow:0 4px 18px #ff386440;}
+.btn-add:disabled{opacity:.55;cursor:wait;}
+.spinner{display:inline-flex;align-items:center;gap:7px;}
+.spin-i{display:inline-block;animation:spin 1s linear infinite;}
+
+/* TITLE CHOICE CARDS */
+.title-opts{display:flex;flex-direction:column;gap:10px;}
+.title-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
+  border-radius:14px;cursor:pointer;border:2px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03);transition:all .18s;}
+.title-opt.chosen{border-color:var(--accent);background:rgba(255,56,100,.07);}
+.title-opt-dot{width:18px;height:18px;border-radius:50%;border:2px solid #444;
+  flex-shrink:0;margin-top:2px;transition:all .18s;display:flex;align-items:center;justify-content:center;}
+.title-opt.chosen .title-opt-dot{border-color:var(--accent);background:var(--accent);}
+.title-opt-dot-inner{width:7px;height:7px;border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;}
+.title-opt.chosen .title-opt-dot-inner{opacity:1;}
+.title-opt-body{flex:1;}
+.title-opt-label{font-size:10px;font-weight:700;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.title-opt-text{font-size:15px;font-weight:600;color:#555;line-height:1.45;margin-top:2px;}
+.title-opt.chosen .title-opt-text{color:#fff;font-weight:700;}
+.title-opt-input{background:none;border:none;outline:none;color:#fff;font-size:14px;
+  font-weight:600;font-family:var(--font-b);width:100%;padding:0;margin-top:2px;}
+.title-opt-input::placeholder{color:#333;}
+
+/* LIGHTBOX */
+#lightbox-modal{align-items:center!important;}
+#lightbox-modal .modal{max-width:900px;padding:0;background:#000;border-radius:16px!important;overflow:hidden;}
+.lb-head{display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:rgba(7,7,15,.95);border-bottom:1px solid rgba(255,255,255,.06);}
+.lb-tag{border-radius:99px;padding:3px 10px;font-size:11px;font-weight:800;flex-shrink:0;color:#000;}
+.lb-title{flex:1;font-size:13px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-fs-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  color:#fff;cursor:pointer;font-size:16px;width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lb-frame{position:relative;padding-bottom:56.25%;height:0;background:#000;}
+.lb-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:none;}
+
+/* CAT MODAL */
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
+.emoji-opt{width:36px;height:36px;border-radius:9px;border:2px solid transparent;
+  background:rgba(255,255,255,.05);cursor:pointer;font-size:18px;
+  display:flex;align-items:center;justify-content:center;}
+.emoji-opt.sel{border-color:var(--accent);background:rgba(255,56,100,.12);}
+.color-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.color-sw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;flex-shrink:0;}
+.color-sw.sel{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.3);}
+.cat-preview-pill{display:inline-flex;align-items:center;gap:7px;
+  border-radius:99px;padding:8px 18px;font-size:14px;font-weight:700;color:#000;}
+.custom-cat-item{display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:10px 14px;}
+.custom-cat-del{background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px;}
+#title-preview{display:none;align-items:center;gap:10px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.09);border-radius:11px;padding:11px 14px;}
+
+@media(min-width:600px){
+  .cats-wrap{max-width:1300px;margin:0 auto;padding:20px 24px 0;}
+  main{max-width:1300px;margin:0 auto;padding:20px 24px calc(80px + var(--safe-bottom));}
+  .header-inner{max-width:1300px;margin:0 auto;padding:0 24px;height:66px;}
+}
+</style>
+</head>
+<body>
+<div id="bg"><div class="orb orb1"></div><div class="orb orb2"></div><div id="bg-grid"></div></div>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark">▶</div>
+      <div class="logo-name"><em>Sort</em>Tube</div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search" placeholder="חפש סרטון..." autocomplete="off">
+      <button id="search-clear">✕</button>
+    </div>
+  </div>
+</header>
+
+<div class="cats-wrap">
+  <div class="cats-top">
+    <div class="cats-label">קטגוריות</div>
+    <button class="cat-add-btn" onclick="openCatModal()">＋ קטגוריה</button>
+  </div>
+  <div class="cats-row" id="cats-row"></div>
+</div>
+
+<main>
+  <div class="sec-head">
+    <div class="sec-title" id="sec-title">כל הסרטונים</div>
+    <span class="sec-stag" id="sec-stag" style="display:none"></span>
+    <span class="sec-count" id="sec-count"></span>
+  </div>
+  <div id="grid"></div>
+  <div id="empty">
+    <div class="empty-dots" id="empty-dots"></div>
+    <div class="empty-h" id="empty-h">עוד אין סרטונים</div>
+    <div class="empty-p" id="empty-p">לחץ על הכפתור למטה כדי להוסיף סרטון ראשון</div>
+  </div>
+</main>
+
+<button id="fab" onclick="openAddModal()"><span style="font-size:20px;font-weight:300">＋</span> הוסף סרטון</button>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-band"></div><div class="drag-handle"></div>
+    <div class="modal-head">
+      <div class="modal-eyebrow">סרטון חדש</div>
+      <div class="modal-title-row">
+        <div class="modal-title">הוספת סרטון</div>
+        <button class="x-btn" onclick="closeAddModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <!-- STEP 1: URL input -->
+      <div id="step-url">
+        <div class="field">
+          <label>קישור יוטיוב <span style="color:var(--accent)">*</span></label>
+          <input type="url" id="input-url" placeholder="https://youtube.com/watch?v=..." dir="ltr" autocomplete="off" inputmode="url">
+        </div>
+        <div id="title-preview">
+          <span style="font-size:16px;flex-shrink:0" id="tp-icon">🎬</span>
+          <span id="tp-text" style="font-size:13px;color:#ccc;line-height:1.4;"></span>
+        </div>
+        <div id="add-err">⚠️ <span id="err-text"></span></div>
+        <div class="ai-note">
+          <span style="font-size:18px">🤖</span>
+          <span>ה-AI ישלוף את הכותרת ויציע תרגום לעברית</span>
+        </div>
+        <div class="modal-btns">
+          <button class="btn-cancel" onclick="closeAddModal()">ביטול</button>
+          <button class="btn-add" id="btn-fetch" onclick="handleFetch()">המשך ←</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: choose title version -->
+      <div id="step-choose" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;">בחר שם לסרטון</div>
+        <div class="title-opts">
+
+          <!-- HEBREW -->
+          <div class="title-opt chosen" id="choice-he" onclick="selectTitle('he')">
+            <div class="title-opt-dot"><div class="title-opt-dot-inner"></div></div>
+            <div class="title-opt-body">
+              <div class="title-opt-label">🇮🇱 עברית (מתורגם)</div>
+              <div class="title-opt-text" id="choice-he-text">...</div>
+            </div>
+          </div>
+
+          <!-- ORIGINAL -->
+          <div class="title-opt" id="choice-orig" onclick="selectTitle('orig')">
+            <div class="title-opt-dot"><div class="title-opt-dot-inner"></div></div>
+            <div class="title-opt-body">
+              <div class="title-opt-label">🌐 אנגלית (מקורי)</div>
+              <div class="title-opt-text" id="choice-orig-text">...</div>
+            </div>
+          </div>
+
+          <!-- MANUAL -->
+          <div class="title-opt" id="choice-manual" onclick="selectTitle('manual')">
+            <div class="title-opt-dot"><div class="title-opt-dot-inner"></div></div>
+            <div class="title-opt-body">
+              <div class="title-opt-label">✏️ אישי (כתוב בעצמך)</div>
+              <input class="title-opt-input" type="text" id="input-manual"
+                placeholder="הכנס שם משלך..."
+                autocomplete="off"
+                onclick="event.stopPropagation();selectTitle('manual')"
+                oninput="selectTitle('manual')">
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-btns" style="margin-top:14px;">
+          <button class="btn-cancel" onclick="backToUrl()">← חזור</button>
+          <button class="btn-add" id="btn-add-final" onclick="handleAdd()">＋ הוסף סרטון</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="overlay" id="lightbox-modal">
+  <div class="modal" style="max-width:900px;padding:0;background:#000;border-radius:16px;overflow:hidden;">
+    <div class="lb-head">
+      <div class="lb-tag" id="lb-tag"></div>
+      <div class="lb-title" id="lb-title"></div>
+      <button class="lb-fs-btn" onclick="goFullscreen()" title="מסך מלא">⛶</button>
+      <button class="x-btn" onclick="closeLightbox()">✕</button>
+    </div>
+    <div class="lb-frame">
+      <iframe id="lb-iframe" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen title=""></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- CAT MODAL -->
+<div class="overlay" id="cat-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-band" style="background:linear-gradient(90deg,#26de81,#00c2ff,#b57bee)"></div>
+    <div class="drag-handle"></div>
+    <div class="modal-head">
+      <div class="modal-eyebrow">ניהול קטגוריות</div>
+      <div class="modal-title-row">
+        <div class="modal-title">קטגוריות מותאמות</div>
+        <button class="x-btn" onclick="closeCatModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="custom-cats-wrap" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">הקטגוריות שלך</div>
+        <div id="custom-cats-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="height:1px;background:rgba(255,255,255,.07);margin:16px 0"></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">הוסף קטגוריה חדשה</div>
+      <div class="field">
+        <label>שם הקטגוריה</label>
+        <input type="text" id="cat-name" placeholder="למשל: ספורט, בישול..." autocomplete="off" oninput="updateCatPreview()">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">אימוג'י</div>
+        <div class="emoji-grid" id="emoji-grid"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">צבע</div>
+        <div class="color-grid" id="color-grid"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">תצוגה מקדימה</div>
+        <div class="cat-preview-pill" id="cat-preview">🎯 קטגוריה חדשה</div>
+      </div>
+      <div id="cat-err" style="display:none;align-items:center;gap:8px;background:rgba(255,56,100,.07);border:1px solid rgba(255,56,100,.18);border-radius:10px;padding:10px 14px;color:#ff5577;font-size:13px;font-weight:600;">⚠️ <span id="cat-err-text"></span></div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeCatModal()">סגור</button>
+        <button class="btn-add" onclick="addCustomCat()" style="background:linear-gradient(135deg,#26de81,#00c2ff)">＋ הוסף</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SK='sorttube-v2', CCK='sorttube-custom-cats';
+const BASE_CATS=[
+  {id:'gaming',emoji:'🎮',label:'גיימינג',  color:'#ff3864',glow:'#ff386455'},
+  {id:'magic', emoji:'✨',label:'קסמים',    color:'#b57bee',glow:'#b57bee44'},
+  {id:'vlogs', emoji:'📹',label:'ולוגים',   color:'#00c2ff',glow:'#00c2ff44'},
+  {id:'music', emoji:'🎵',label:'מוזיקה',   color:'#ff9f43',glow:'#ff9f4344'},
+  {id:'tech',  emoji:'💻',label:'טכנולוגיה',color:'#26de81',glow:'#26de8144'},
+  {id:'funny', emoji:'😂',label:'מצחיק',    color:'#ffd32a',glow:'#ffd32a44'},
+  {id:'other', emoji:'📦',label:'אחר',      color:'#a4b0be',glow:'#a4b0be33'},
+];
+const EMOJIS=['🎯','⚽','🏀','🎾','🥊','🏊','🚴','🧘','🍕','🍣','🍔','☕','🎨','📸','✏️','📚','🌍','🏔','🏖','🌸','🐶','🐱','🦁','🦋','🚀','✈️','🏎','⚡','💎','🔥','🌈','👑'];
+const COLORS=['#ff3864','#ff6b35','#ff9f43','#ffd32a','#26de81','#00c2ff','#b57bee','#fd79a8','#00cec9','#6c5ce7','#a29bfe','#74b9ff','#55efc4','#fdcb6e','#e17055','#d63031'];
+
+let videos=[], customCats=[], activeCat='all', searchQ='';
+let selEmoji=EMOJIS[0], selColor=COLORS[0], curLbId=null;
+let pendingVid=null, pendingUrl='', pendingOrig='', pendingHe='', chosenTitle='he';
+
+function load(){try{videos=JSON.parse(localStorage.getItem(SK)||'[]');}catch{videos=[];}}
+function save(){localStorage.setItem(SK,JSON.stringify(videos));}
+function loadCC(){try{customCats=JSON.parse(localStorage.getItem(CCK)||'[]');}catch{customCats=[];}}
+function saveCC(){localStorage.setItem(CCK,JSON.stringify(customCats));}
+function allCats(){return[...BASE_CATS,...customCats];}
+function getYTId(url){const m=url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);return m?m[1]:null;}
+function thumb(id){return`https://img.youtube.com/vi/${id}/mqdefault.jpg`;}
+
+// ── AI CALL ──
+async function aiCall(prompt,maxTokens=150){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,
+      messages:[{role:'user',content:prompt}]})
+  });
+  const d=await res.json();
+  return(d.content?.[0]?.text||'').trim();
+}
+
+// ── TITLE ──
+async function fetchTitle(videoId){
+  try{
+    const r=await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+    if(r.ok){const d=await r.json();if(d.title)return d.title;}
+  }catch{}return null;
+}
+function cleanTitle(t){
+  return t.replace(/#\S+/g,'').replace(/[\[\(][^\]\)]*[\]\)]/g,' ').replace(/\|.*/g,'')
+    .replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,'')
+    .replace(/[-–—]+$/,'').replace(/^[-–—]+/,'').replace(/\s+/g,' ').trim();
+}
+async function translateHe(title){
+  try{
+    const prompt='Translate this YouTube video title to natural Hebrew. Return ONLY the Hebrew translation, nothing else, no quotes. Keep names as-is.\n\nTitle: '+title;
+    const result=await aiCall(prompt,120);
+    if(result&&result.length>1)return result;
+    return title;
+  }catch(e){console.error('translate:',e);return title;}
+}
+
+// ── CLASSIFY ──
+async function classify(title,url){
+  const t=title.toLowerCase();
+  const kw={
+    magic:['фокус','фокусник','магия','иллюзия','трюк','волшебник','קסם','קוסם','מאגיה','אשליה','טריק','magic','trick','illusion','magician','wizard','spell'],
+    gaming:['игра','игры','gameplay','gaming','minecraft','fortnite','roblox','esport','משחק','game','lets play','playthrough','fps','rpg'],
+    music:['музыка','песня','клип','music','song','beat','album','track','מוזיקה','שיר','קליפ','זמר'],
+    tech:['программирование','обзор','tutorial','review','programming','coding','software','hardware','javascript','python','react','טכנולוגיה','קוד','תכנות','הדרכה'],
+    funny:['смешно','розыгрыш','приколы','comedy','prank','fail','meme','funny','lol','מצחיק','תעלול'],
+    vlogs:['влог','vlog','день','жизнь','путешествие','daily','day in','routine','travel','lifestyle','ולוג','יום','חיים','טיול'],
+  };
+  for(const[cat,words]of Object.entries(kw)){if(words.some(w=>t.includes(w)))return cat;}
+  for(const cc of customCats){if(t.includes(cc.label.toLowerCase()))return cc.id;}
+  try{
+    const raw=await aiCall(`Classify this YouTube video title into ONE category: magic, gaming, music, tech, funny, vlogs, or other.\nTitle: "${title}"\nReply ONLY with the category word.`,10);
+    const clean=raw.toLowerCase().replace(/[^a-z]/g,'');
+    return allCats().map(c=>c.id).includes(clean)?clean:'other';
+  }catch{return'other';}
+}
+
+// ── RENDER ──
+function renderCats(){
+  const cats=allCats();
+  const counts=Object.fromEntries(cats.map(c=>[c.id,videos.filter(v=>v.category===c.id).length]));
+  const row=document.getElementById('cats-row');
+  let html=`<button class="cat-btn${activeCat==='all'?' active':''}" onclick="setCat('all')"
+    style="${activeCat==='all'?'background:linear-gradient(135deg,#ff3864,#ff6b35);box-shadow:0 3px 18px #ff386440;':''}">
+    🎬 הכל<span class="cat-badge" style="background:${activeCat==='all'?'rgba(0,0,0,.3)':'rgba(255,56,100,.15)'};color:${activeCat==='all'?'#fff':'#ff3864'}">${videos.length}</span>
+  </button>`;
+  cats.forEach(cat=>{
+    const active=activeCat===cat.id,cnt=counts[cat.id]||0;
+    html+=`<button class="cat-btn${active?' active':''}" onclick="setCat('${cat.id}')"
+      style="${active?`background:${cat.color};box-shadow:0 3px 18px ${cat.glow};color:#000;`:''}">
+      ${cat.emoji} ${cat.label}
+      ${cnt>0?`<span class="cat-badge" style="background:${active?'rgba(0,0,0,.25)':cat.color+'20'};color:${active?'#000':cat.color}">${cnt}</span>`:''}
+    </button>`;
+  });
+  row.innerHTML=html;
+}
+
+function renderGrid(){
+  const filtered=videos.filter(v=>{
+    return(activeCat==='all'||v.category===activeCat)&&
+      (!searchQ||v.title.toLowerCase().includes(searchQ.toLowerCase()));
+  });
+  const catObj=allCats().find(c=>c.id===activeCat);
+  document.getElementById('sec-title').textContent=activeCat==='all'?'כל הסרטונים':`${catObj?.emoji} ${catObj?.label}`;
+  document.getElementById('sec-count').textContent=`${filtered.length} תוצאות`;
+  const stag=document.getElementById('sec-stag');
+  if(searchQ){stag.textContent=`"${searchQ}"`;stag.style.display='';}else stag.style.display='none';
+
+  const grid=document.getElementById('grid'),empty=document.getElementById('empty');
+  if(!filtered.length){
+    grid.innerHTML='';empty.style.display='block';
+    document.getElementById('empty-h').textContent=searchQ?'לא נמצאו תוצאות':'עוד אין סרטונים';
+    document.getElementById('empty-p').textContent=searchQ?`לא מצאנו תוצאות עבור "${searchQ}"`:'לחץ על הכפתור למטה להוסיף סרטון';
+    document.getElementById('empty-dots').innerHTML=allCats().slice(0,6).map((c,i)=>
+      `<div class="empty-dot" style="background:${c.color};animation:floatDot 1.8s ease-in-out ${i*.16}s infinite"></div>`).join('');
+    return;
+  }
+  empty.style.display='none';
+  grid.innerHTML=filtered.map((v,i)=>{
+    const cat=allCats().find(c=>c.id===v.category)||allCats().find(c=>c.id==='other');
+    return`<div class="card" style="animation-delay:${i*.04}s">
+      <button class="card-menu-btn" onclick="toggleMenu(event,${v.id})">⋮</button>
+      <div id="menu-${v.id}" class="card-menu">
+        <button class="menu-item" onclick="openLightbox(${v.id});closeAllMenus()">▶ צפה בסרטון</button>
+        <button class="menu-item" onclick="openRenameModal(${v.id})">✏️ שנה שם</button>
+        <button class="menu-item" onclick="toggleSubmenu(${v.id})">📂 העבר לקטגוריה ▾</button>
+        <div class="submenu" id="sub-${v.id}">
+          ${allCats().filter(c=>c.id!==v.category).map(c=>
+            `<button class="submenu-item" onclick="moveToCategory(${v.id},'${c.id}')">
+              <div class="submenu-dot" style="background:${c.color}"></div>${c.emoji} ${c.label}
+            </button>`).join('')}
+        </div>
+        <div class="menu-sep"></div>
+        <button class="menu-item" onclick="copyLink(${v.id})">🔗 העתק קישור</button>
+        <button class="menu-item" onclick="openInYT(${v.id})">↗ פתח ביוטיוב</button>
+        <div class="menu-sep"></div>
+        <button class="menu-item danger" onclick="delVideo(${v.id})">🗑 מחק סרטון</button>
+      </div>
+      <div class="card-thumb" onclick="openLightbox(${v.id})">
+        <img src="${thumb(v.videoId)}" alt="" loading="lazy">
+        <div class="thumb-ov"><div class="play-ic" style="background:${cat.color};box-shadow:0 4px 20px ${cat.glow}">▶</div></div>
+        <div class="card-badge" style="background:${cat.color}">${cat.emoji} ${cat.label}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${v.title.replace(/</g,'&lt;')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function render(){renderCats();renderGrid();}
+function setCat(id){activeCat=id;closeAllMenus();render();}
+
+// ── MENUS ──
+function toggleMenu(e,id){
+  e.stopPropagation();
+  const menu=document.getElementById('menu-'+id);
+  const wasOpen=menu.classList.contains('open');
+  closeAllMenus();
+  if(!wasOpen)menu.classList.add('open');
+}
+function closeAllMenus(){
+  document.querySelectorAll('.card-menu.open').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.submenu.open').forEach(s=>s.classList.remove('open'));
+}
+function toggleSubmenu(id){
+  event.stopPropagation();
+  const sub=document.getElementById('sub-'+id);
+  sub.classList.toggle('open');
+}
+document.addEventListener('click',()=>closeAllMenus());
+
+// ── VIDEO ACTIONS ──
+function delVideo(id){
+  if(curLbId===id)closeLightbox();
+  videos=videos.filter(v=>v.id!==id);save();render();
+}
+function moveToCategory(id,catId){
+  videos=videos.map(v=>v.id===id?{...v,category:catId}:v);save();render();
+}
+function copyLink(id){
+  const v=videos.find(x=>x.id===id);if(!v)return;
+  navigator.clipboard.writeText(v.url).then(()=>alert('הקישור הועתק!'));
+}
+function openInYT(id){
+  const v=videos.find(x=>x.id===id);if(!v)return;
+  window.open(v.url,'_blank');
+}
+
+// ── RENAME MODAL (reuse add-modal area) ──
+function openRenameModal(id){
+  closeAllMenus();
+  const v=videos.find(x=>x.id===id);if(!v)return;
+  const name=prompt('שנה שם לסרטון:',v.title);
+  if(name&&name.trim()){
+    videos=videos.map(x=>x.id===id?{...x,title:name.trim()}:x);
+    save();render();
+  }
+}
+
+// ── ADD FLOW ──
+function openAddModal(){
+  document.getElementById('add-modal').classList.add('open');
+  document.getElementById('step-url').style.display='block';
+  document.getElementById('step-choose').style.display='none';
+  document.getElementById('input-url').value='';
+  document.getElementById('title-preview').style.display='none';
+  document.getElementById('add-err').classList.remove('on');
+  pendingVid=null;pendingUrl='';pendingOrig='';pendingHe='';chosenTitle='he';
+  setTimeout(()=>document.getElementById('input-url').focus(),100);
+}
+function closeAddModal(){document.getElementById('add-modal').classList.remove('open');}
+function backToUrl(){
+  document.getElementById('step-url').style.display='block';
+  document.getElementById('step-choose').style.display='none';
+}
+function showErr(msg){document.getElementById('err-text').textContent=msg;document.getElementById('add-err').classList.add('on');}
+
+document.getElementById('input-url').addEventListener('input',async function(){
+  const vid=getYTId(this.value.trim());
+  const preview=document.getElementById('title-preview');
+  if(!vid){preview.style.display='none';return;}
+  preview.style.display='flex';
+  document.getElementById('tp-icon').textContent='⏳';
+  document.getElementById('tp-text').textContent='שולף כותרת...';
+  const raw=await fetchTitle(vid);
+  if(raw){
+    document.getElementById('tp-icon').textContent='✅';
+    document.getElementById('tp-text').textContent=cleanTitle(raw);
+  }else{
+    document.getElementById('tp-icon').textContent='⚠️';
+    document.getElementById('tp-text').textContent='לא הצלחנו לשלוף';
+  }
+});
+
+async function handleFetch(){
+  const url=document.getElementById('input-url').value.trim();
+  document.getElementById('add-err').classList.remove('on');
+  if(!url){showErr('נא להכניס קישור לסרטון');return;}
+  const vid=getYTId(url);
+  if(!vid){showErr('קישור יוטיוב לא תקין');return;}
+  const btn=document.getElementById('btn-fetch');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"><span class="spin-i">⟳</span> שולף...</span>';
+
+  const raw=await fetchTitle(vid)||`סרטון (${vid})`;
+  const cleaned=cleanTitle(raw);
+
+  btn.innerHTML='<span class="spinner"><span class="spin-i">⟳</span> מתרגם...</span>';
+  const translated=await translateHe(cleaned);
+
+  pendingVid=vid;pendingUrl=url;pendingOrig=cleaned;pendingHe=translated;chosenTitle='he';
+
+  document.getElementById('choice-he-text').textContent=translated;
+  document.getElementById('choice-orig-text').textContent=cleaned;
+  document.getElementById('input-manual').value='';
+  document.querySelectorAll('.title-opt').forEach(el=>el.classList.remove('chosen'));
+  document.getElementById('choice-he').classList.add('chosen');
+
+  btn.disabled=false;btn.innerHTML='המשך ←';
+  document.getElementById('step-url').style.display='none';
+  document.getElementById('step-choose').style.display='block';
+}
+
+function selectTitle(type){
+  chosenTitle=type;
+  document.querySelectorAll('.title-opt').forEach(el=>el.classList.remove('chosen'));
+  document.getElementById('choice-'+type).classList.add('chosen');
+  if(type==='manual')document.getElementById('input-manual').focus();
+}
+
+async function handleAdd(){
+  let title='';
+  if(chosenTitle==='he')title=pendingHe;
+  else if(chosenTitle==='orig')title=pendingOrig;
+  else title=document.getElementById('input-manual').value.trim();
+  if(!title){alert('נא לבחור שם לסרטון');return;}
+
+  const btn=document.getElementById('btn-add-final');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"><span class="spin-i">⟳</span> מוסיף...</span>';
+  const cat=await classify(title,pendingUrl);
+  videos.unshift({id:Date.now(),title,url:pendingUrl,videoId:pendingVid,category:cat,addedAt:new Date().toISOString()});
+  save();render();
+  btn.disabled=false;btn.innerHTML='＋ הוסף סרטון';
+  closeAddModal();
+}
+
+// ── LIGHTBOX ──
+function openLightbox(id){
+  const v=videos.find(x=>x.id===id);if(!v)return;
+  const cat=allCats().find(c=>c.id===v.category)||allCats().find(c=>c.id==='other');
+  curLbId=id;
+  document.getElementById('lb-tag').textContent=`${cat.emoji} ${cat.label}`;
+  document.getElementById('lb-tag').style.background=cat.color;
+  document.getElementById('lb-title').textContent=v.title;
+  document.getElementById('lb-iframe').src=`https://www.youtube.com/embed/${v.videoId}?autoplay=1`;
+  document.getElementById('lightbox-modal').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox-modal').classList.remove('open');
+  document.getElementById('lb-iframe').src='';curLbId=null;
+}
+function goFullscreen(){
+  const el=document.getElementById('lb-iframe');
+  try{
+    if(el.requestFullscreen)el.requestFullscreen();
+    else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+    else if(el.mozRequestFullScreen)el.mozRequestFullScreen();
+  }catch(e){
+    const v=el.src.match(/embed\/([a-zA-Z0-9_-]{11})/);
+    if(v)window.open('https://www.youtube.com/watch?v='+v[1],'_blank');
+  }
+}
+document.addEventListener('fullscreenchange',()=>{
+  const btn=document.querySelector('.lb-fs-btn');if(!btn)return;
+  btn.textContent=document.fullscreenElement?'✕':'⛶';
+});
+
+// ── SEARCH ──
+document.getElementById('search').addEventListener('input',function(){
+  searchQ=this.value;
+  document.getElementById('search-clear').classList.toggle('on',!!searchQ);
+  render();
+});
+document.getElementById('search-clear').addEventListener('click',()=>{
+  document.getElementById('search').value='';searchQ='';
+  document.getElementById('search-clear').classList.remove('on');render();
+});
+
+// ── CUSTOM CATS ──
+function openCatModal(){
+  loadCC();selEmoji=EMOJIS[0];selColor=COLORS[0];
+  document.getElementById('cat-name').value='';
+  document.getElementById('cat-err').style.display='none';
+  document.getElementById('emoji-grid').innerHTML=EMOJIS.map(e=>
+    `<button class="emoji-opt${e===selEmoji?' sel':''}" onclick="selEm('${e}')">${e}</button>`).join('');
+  document.getElementById('color-grid').innerHTML=COLORS.map(c=>
+    `<div class="color-sw${c===selColor?' sel':''}" style="background:${c}" onclick="selCol('${c}')"></div>`).join('');
+  updateCatPreview();renderCCList();
+  document.getElementById('cat-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('cat-name').focus(),100);
+}
+function closeCatModal(){document.getElementById('cat-modal').classList.remove('open');}
+function selEm(e){selEmoji=e;document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('sel',el.textContent===e));updateCatPreview();}
+function selCol(c){selColor=c;document.querySelectorAll('.color-sw').forEach(el=>el.classList.toggle('sel',el.style.background===c||el.style.backgroundColor===c));updateCatPreview();}
+function updateCatPreview(){
+  const name=document.getElementById('cat-name').value.trim()||'קטגוריה חדשה';
+  const p=document.getElementById('cat-preview');
+  p.textContent=selEmoji+' '+name;p.style.background=selColor;p.style.color='#000';
+}
+function renderCCList(){
+  const wrap=document.getElementById('custom-cats-wrap'),list=document.getElementById('custom-cats-list');
+  if(!customCats.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  list.innerHTML=customCats.map(cat=>`
+    <div class="custom-cat-item">
+      <div style="width:28px;height:28px;border-radius:8px;background:${cat.color};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">${cat.emoji}</div>
+      <div style="flex:1;font-size:14px;font-weight:600">${cat.label}</div>
+      <button class="custom-cat-del" onclick="deleteCC('${cat.id}')">🗑</button>
+    </div>`).join('');
+}
+function deleteCC(id){
+  videos=videos.map(v=>v.category===id?{...v,category:'other'}:v);save();
+  customCats=customCats.filter(c=>c.id!==id);saveCC();
+  if(activeCat===id)activeCat='all';
+  renderCCList();render();
+}
+function addCustomCat(){
+  const name=document.getElementById('cat-name').value.trim();
+  const errEl=document.getElementById('cat-err');
+  errEl.style.display='none';
+  if(!name){document.getElementById('cat-err-text').textContent='נא להכניס שם';errEl.style.display='flex';return;}
+  if(name.length>20){document.getElementById('cat-err-text').textContent='שם ארוך מדי';errEl.style.display='flex';return;}
+  if(allCats().some(c=>c.label===name)){document.getElementById('cat-err-text').textContent='קטגוריה כזו כבר קיימת';errEl.style.display='flex';return;}
+  customCats.push({id:'cc_'+Date.now(),emoji:selEmoji,label:name,color:selColor,glow:selColor+'44',custom:true});
+  saveCC();document.getElementById('cat-name').value='';openCatModal();render();
+}
+
+// ── KEYBOARD & CLOSE ──
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeAddModal();closeLightbox();closeCatModal();closeAllMenus();}
+});
+['add-modal','lightbox-modal','cat-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this){
+      if(id==='lightbox-modal')closeLightbox();
+      else if(id==='cat-modal')closeCatModal();
+      else closeAddModal();
+    }
+  });
+});
+
+loadCC();load();render();
+</script>
+</body>
+</html>
